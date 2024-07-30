@@ -1,0 +1,18 @@
+[project]
+name = "aftafa"
+version = "0.0.1a"
+authors = [
+  { name="Magsud Ali", email="maku.aliyev@gmail.com" },
+]
+description = "yet another ELT project for e-commerce"
+readme = "README.md"
+requires-python = ">=3.10"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+
+[project.urls]
+Homepage = "https://github.com/makualiyev/aftafa"
+Issues = "https://github.com/makualiyev/aftafa/issues"

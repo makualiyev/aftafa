@@ -1,0 +1,13 @@
+{
+  "ozon_to_ms_states": {
+    "awaiting_registration": "Тестовый",
+    "acceptance_in_progress": "Тестовый",
+    "awaiting_approve": "Новый/Ожидает сборки",
+    "awaiting_packaging": "Ожидает упаковки",
+    "awaiting_deliver": "Подтвержден/Ожидает отгрузки",
+    "delivering": "Доставляется",
+    "delivered": "Доставлен",
+    "cancelled": "Отменен",
+    "not_accepted": "Не принят на СЦ"
+  }
+}

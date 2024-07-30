@@ -1,0 +1,2 @@
+-- template
+SELECT 1;
