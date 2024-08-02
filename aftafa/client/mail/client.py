@@ -2,7 +2,6 @@ import imaplib
 import base64
 import json
 from datetime import datetime
-from dataclasses import dataclass
 import email
 import quopri
 
@@ -10,13 +9,14 @@ from aftafa.common.config import Config
 from aftafa.utils.helpers import color_fmt, sizeof_fmt
 
 
-
-# META_DIR = r'E:/shoptalk/local_/meta/meta.json'
 with open(Config()._get_meta_credentials_file(channel='MAIL'), 'rb') as f:
     META = json.loads(f.read())
 
-
 class RFC822MessageParser:
+    """
+    Parser for RFC 822 part of message, witch we get from
+    `IMAP4_SSL.fetch()`.
+    """
     def __init__(
             self,
             rfc822_message: tuple[bytes]
@@ -42,6 +42,21 @@ class RFC822MessageParser:
 
 
 class YandexMailClient:
+    """
+    IMAP client for interacting with Yandex Mail.
+
+    Args:
+        user (str): username that maps username and
+        password from config file.
+        config (str): config file.
+
+    Raises:
+        KeyError: if no entry for the user in con-
+        fig.
+
+    Returns:
+        None: initialize IMAP4_SSL class
+    """
     IMAP_HOST_URL: str = "imap.yandex.com"
     IMAP_HOST_PORT: int = 993
 
@@ -109,31 +124,39 @@ class YandexMailClient:
 
     def _search_mailbox(
             self,
-            folder: str,
-            date_: str | None = None,
-            subject: str = "",
-            from_: str = ""
+            mailbox: str,
+            email_since: str | None = None,
+            email_subject: str = "",
+            email_from: str = ""
     ) -> list[bytes] | None:
-        """Searches in a given mailbox
-        and returns list of bytes of message ids
+        """Searches in a given mailbox and returns
+        list of bytes of message ids.
+
+        Args:
+            mailbox (str): _description_
+            date_ (str | None, optional): _description_. Defaults to None.
+            subject (str, optional): _description_. Defaults to "".
+            from_ (str, optional): _description_. Defaults to "".
+
+        Returns:
+            list[bytes] | None: _description_
         """
-        selected_mailbox: str = self._select_mailbox(mailbox=folder)
+        selected_mailbox: str = self._select_mailbox(mailbox=mailbox)
         if selected_mailbox != 'OK':
             return None
         
-        if not date_:
-            date_ = datetime.today()
+        if not email_since:
+            email_since = datetime.today()
         else:
-            date_ = datetime.strptime(date_, '%Y-%m-%d')
-        date_string = date_.strftime('%d-%b-%Y')
+            email_since = datetime.strptime(email_since, '%Y-%m-%d')
+        date_string = email_since.strftime('%d-%b-%Y')
         
-        if from_:
-            from_ = f' FROM "{from_}"'
-        if subject:
-            subject = f'SUBJECT "{subject}" '
+        if email_from:
+            email_from = f' FROM "{email_from}"'
+        if email_subject:
+            email_subject = f'SUBJECT "{email_subject}" '
 
-
-        search_query: str = f'({subject}SINCE "{date_string}"{from_})'
+        search_query: str = f'({email_subject}SINCE "{date_string}"{email_since})'
         print(f'THE SEARCH QUERY IS ---> {search_query}')
         try:
             status, data = self.mail.search(None, search_query)
@@ -161,7 +184,9 @@ class YandexMailClient:
             'OK',                                   # status of a `fetch` command
             [                                       #
                 (                                   # a tuple of message parts
-                    b'28 (RFC822 {103743}',         # uid of message and `message_parts` argument (standard) for IMAP fetch method
+                    b'28 (RFC822 {103743}',         # uid of message and `message_parts` 
+                                                    # argument (standard) for IMAP fetch method
+                                                    #
                     b'Received: from...',           # message itself
                 ),                                  # 
                 b')'                                # closing bracket byte
@@ -232,10 +257,10 @@ class YandexMailClient:
         """
         email_list: list = []
         search_result: list[bytes] | None = self._search_mailbox(
-                                                folder=mailbox,
-                                                date_=email_since,
-                                                subject=email_subject,
-                                                from_=email_from
+                                                mailbox=mailbox,
+                                                email_since=email_since,
+                                                email_subject=email_subject,
+                                                email_from=email_from
                                             )
         if not search_result:
             print(f"No mailbox!")
@@ -272,30 +297,3 @@ def escape_b64(encoded_: str) -> str:
 def escape_b64_from_koi8_r(msg_: str) -> str:
     return email.base64mime.decodestring(msg_.split('?')[3]).decode('koi8-r')
     # return base64.b64decode(msg_.split('?')[3].encode('utf-8')).decode('koi8-r')
-
-
-# def process_payloads(email_) -> None:
-#     email_payloads = email_.get_payload()
-#     email_date = datetime.strptime(email_.get('Date'), '%a, %d %b %Y %H:%M:%S +0300')
-#     assert len(email_payloads) == 2, "Something's changed in email attachments mechanism"
-#     for email_payload in email_payloads:
-#         if email_payload.get_content_type() == 'text/plain':
-#             continue
-#         email_attachment = email_payload
-    
-#     assert escape_b64(email_attachment.get_filename()) == 'Остаток на складах МВМ_Дельвента.xlsx', "File name for the attachment is changed"
-#     os.chdir(r'E:\shoptalk\marketplace_\MV\OOO_DELVENTA\stocks')
-#     with open(f'mvm_stocks_{email_date.strftime("%d-%m-%Y")}.xlsx', 'wb') as f:
-#         f.write(base64.b64decode(email_attachment.get_payload()))
-#     print(f'Successfully saved for this date -> {email_date.strftime("%Y-%m-%d")}')
-    
-# def process_mail(mail_: imaplib.IMAP4_SSL, uid_: bytes) -> None:
-#     mail_element_status, mail_element_data = mail_.fetch(uid_, '(RFC822)')
-#     mail_element_message = email.message_from_bytes(mail_element_data[0][1])
-#     mail_element_subject = escape_b64(mail_element_message.get('Subject'))
-    
-
-#     assert len(mail_element_data) == 2, f"Somethings's changed in mail_element_data, it now consists of more than 2 elements"
-#     assert mail_element_subject == 'Остаток на складах МВМ', f"Not the same name for the subject"
-
-#     process_payloads(email_=mail_element_message)

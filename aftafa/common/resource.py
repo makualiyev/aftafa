@@ -219,6 +219,4 @@ class ExcelResource(FileResource):
     
     def get_loader(self) -> Loader:
         return super().get_loader()
-
-    # def __repr__(self) -> str:
-    #     return self.file_contents_meta
+    

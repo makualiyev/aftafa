@@ -77,7 +77,6 @@ class JSONlLoader(FileLoader):
             data = json.loads([data])                                       # FIXME: is it reasonable?
         else:
             raise ValueError(f"DATA provided is in unknown format of JSON -> {data}")
-        # data = json.dumps(data, ensure_ascii=False)
         return data
 
     def load(self, data: dict[str, Any], jsonpath: str = "") -> None:

@@ -2,15 +2,16 @@
     <strong>🏺 aftafa</strong> data pipeline
 </h1>
 <p align="center">
-Basic ETL pipeline for extracting and loading data from e-commerce (OZON, Wildberries, Yandex Market, etc.)</p>
+Work in progress lightweight Python ELT library with e-commerce (OZON, Wildberries, Yandex Market, etc.) domain</p>
 
 <p align="center">⚠️ This project is under <strong>heavy development</strong> and yet to be a usable library, so many features are missing actually and its structure surely will be modified/refactored and documented</p>
 
 # Overview
-<div style="text-align: justify">This module can be helpful even if you're not trying to build a decent ETL pipeline, but rather want to fetch data from a marketplace API via a convenient client. But keep in mind that API methods provided in this module can only fetch data (not to confuse with HTTP methods) but can't change them in a way it is documented by a source vendor (e. g. for marketplaces it means: change prices, add new products, refresh dropshipping stocks and etc). Inspired by <a href=https://github.com/dlt-hub/dlt>dlt</a>, <a href=https://github.com/meltano/meltano>meltano</a>, <a href=https://github.com/cloudquery/cloudquery>cloudquery</a>.</div>
+<div style="text-align: justify">This module can be helpful even if you're not trying to build a decent ETL pipeline, but rather want to fetch data from a marketplace API via a convenient client. But keep in mind that API methods provided in this module can only fetch data (not to confuse with HTTP methods) but can't change them in a way it is documented by a source vendor (e. g. for marketplaces it means: change prices, add new products, refresh dropshipping stocks and etc). Inspired by <a href=https://github.com/dlt-hub/dlt>dlt</a>, <a href=https://github.com/meltano/meltano>meltano</a>, <a href=https://github.com/cloudquery/cloudquery>cloudquery</a>, <a href=https://github.com/redpanda-data/benthos>benthos</a>, <a href=https://github.com/ozontech/file.d>file.d</a>.</div>
 
 # Usage
 
+[Architecture overview](docs/overview.md).
 ```bash
 foo@bar:~$ git clone https://github.com/makualiyev/aftafa.git
 foo@bar:~$ cd aftafa
@@ -24,26 +25,16 @@ foo@bar:~$ python -m aftafa --version
 # Development stack / ideas
 
 * Current:
-    * OS: Windows 10 / Ubuntu 22
-    * IDE: Visual Studio Code / Vim
-    * Linters, type checkers and etc.: no idea (mypy, pylint)
-    * Database: PostgreSQL 14 / PostgreSQL 15, duckdb
-    * Python libraries: SQLAlchemy, pydantic, pandas, xlwings
+    * **OS**: Windows 10 / Ubuntu 22
+    * **Text Editor, IDE**: Visual Studio Code / Vim
+    * **Linters, type checkers and etc**: no idea (mypy, pylint)
+    * **Database**: PostgreSQL 14 / PostgreSQL 15, duckdb
+    * **Python libraries**: SQLAlchemy, pydantic, pandas, xlwings
+    * **Development design**: I assume it can be called TDD
 * Plans:
     * try implementing some functions in Go lang
     * Python libraries: [tenacity](https://github.com/jd/tenacity), [click](https://github.com/pallets/click), [structlog](https://github.com/hynek/structlog)
 * Ideas:
-    * Core architecture concerns
-        * now we have a model where an abstract *Resource* is given to a *Pipeline* , which then gets its *Loader* and loads it to a *Destination*
-        ```mermaid
-            graph LR;
-                Resource-->Pipeline;
-                Pipeline-->Loader;
-                Loader-->Destination;
-        ```
-        is it optimal for our use case or should we lean more towards a pluggable architecture as in cloudquery?
-        * What should be the interchange format/protocol, JSON, protobuf?
-        * What else should our pipelines include? *state management*
     * Dev concerns
         * too many dependencies that cause bloating, `venv` folder weighs 375,7 Mb
 
@@ -54,6 +45,7 @@ foo@bar:~$ python -m aftafa --version
   - [ ] replace `click` with `argparse`
   - [ ] `gspread` maybe?
   - [ ] remove `jupyter` + `ipython`
+- [ ] configuration file parser
 - [x] add `resource` class (ref: dlt-hub)
   - [ ] JSONResource -> JSONLoader is not working correctly, check it with supply_orders JSON file from OZON.
 - [x] add `mail_manager` into client.email [INPROCESS]

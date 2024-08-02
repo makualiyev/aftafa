@@ -8,10 +8,12 @@ has:
 ////////////////////////////////////////////
 """
 from pathlib import Path
+
 import click
 
+
 @click.group(
-        help="Aftafa helps you run pipelines in your environment.",
+        help="aftafa helps you run pipelines in your environment.",
         no_args_is_help=True,
         invoke_without_command=True
 )
@@ -27,10 +29,26 @@ def cli(ctx: click.Context):
 @click.option('--config', default=None, help='File with pipeline configuration')
 @click.argument('source')
 @click.argument('destination')
-def run(source, destination, config):
-    click.secho(f'Running pipeline from {source} to {destination}', fg='yellow')
-    if config:
-        click.secho(f'Using config file -> ', fg='yellow')
+def run(
+    source: str,
+    destination: str,
+    config: str
+):
+    click.secho(f'Running pipeline from {source} to {destination} using config file {config}', fg='yellow')
+
+
+@click.command(help="Test pipeline with source and destination or provide a config file with \
+               --config.",
+               no_args_is_help=True)
+@click.option('--config', default=None, help='File with pipeline configuration')
+@click.argument('source')
+@click.argument('destination')
+def test(
+    source: str,
+    destination: str,
+    config: str
+):
+    click.secho(f'Testing pipeline from {source} to {destination} using config file {config}', fg='yellow')
 
 
 @click.command(help="Lists all available pipelines (.py files in dir)")
@@ -42,11 +60,9 @@ def checklist():
 
 
 cli.add_command(run)
+cli.add_command(test)
 cli.add_command(checklist)
-
-def main():
-    cli()
 
 
 if __name__ == '__main__':
-    cli()
+    pass

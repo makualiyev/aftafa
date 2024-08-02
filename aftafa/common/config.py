@@ -3,10 +3,8 @@ from pathlib import Path
 
 
 class Config:
-    POSTGRES_DNS_PATH: str = (
-        r"E:\shoptalk\marketplaceapi_\scripts\ver_0_2\sennix\env\conf"
-    )
-    META_CREDENTIALS_PATH: Path = Path(r"E:\shoptalk\local_\meta")
+    POSTGRES_DNS_PATH: str = ""
+    META_CREDENTIALS_PATH: Path = Path("")
 
     def __init__(self) -> None:
         self.postgres_url = self._get_postgres_credentials()
