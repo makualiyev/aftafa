@@ -51,9 +51,11 @@ So we have to answer these questions first to define our architecture concepts, 
   * **runtime**: what else should our pipelines include? *state management*
 
 * What is our user interface?
-  * **more complex cli or complex configuration management**: is it good idea to take everything in command line such as source definitions with maybe tuned options, config file directories and so on or should all the configuration live in a separate config file? what about readability of commands in cli and which is easier to read `run source --state=./state.json --config=./sourceconf.json ... destination` or `run pipeline --config=config.yaml`? What we want to look here is to check main implementations of config files in different data libraries/frameworks like `dbt_project.yml`, `meltano.yml`, `plugin.yaml` (cloudquery) and etc.
+  * **more complex cli or complex configuration management**: is it good idea to take everything in command line such as source definitions with maybe tuned options, config file directories and so on or should all the configuration live in a separate config file? what about readability of commands in cli and which is easier to read `run source --state=./state.json --config=./sourceconf.json ... destination` or `run pipeline --config=config.yaml`? What we want to look here is to check main implementations of config files in different data libraries/frameworks like `dbt_project.yml`, `meltano.yml`, `plugin.yaml` (cloudquery) and etc. Here we analyze all the different [configuration details](config.md) to come up with a solution.
   * **one UI** is cli only interface for pipelines or can we write our own pipeline in a file as in `dlt`?
 
 <h1 align="center">Implementation</h1>
 
 We are going to build this library using **Bottom-Up** approach starting by a simple CLI command `run pipeline.yml` or `run yandexmail file --config=meta.json` in Example 1.
+Should there also be a StreamSource?
+

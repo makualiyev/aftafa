@@ -10,7 +10,7 @@ import base64
 import time
 
 from colorama import Fore
-import jsonpath_ng
+# import jsonpath_ng
 
 
 class bcolors:
@@ -145,8 +145,9 @@ def sizeof_fmt(num, suffix="B"):
     return f"{num:.1f}Yi{suffix}"
 
 def parse_jsonpath(jsonpath: str, data: dict[str, Any]) -> dict[str, Any]:
-    jsonpath_expr: jsonpath_ng.jsonpath.Child = jsonpath_ng.parse(jsonpath)
-    jsonpath_result: list[dict[str, Any]] = [match.value for match in jsonpath_expr.find(data)]
-    if len(jsonpath_result) == 1:
-        jsonpath_result = jsonpath_result[0]
-    return jsonpath_result
+    pass
+#     jsonpath_expr: jsonpath_ng.jsonpath.Child = jsonpath_ng.parse(jsonpath)
+#     jsonpath_result: list[dict[str, Any]] = [match.value for match in jsonpath_expr.find(data)]
+#     if len(jsonpath_result) == 1:
+#         jsonpath_result = jsonpath_result[0]
+#     return jsonpath_result

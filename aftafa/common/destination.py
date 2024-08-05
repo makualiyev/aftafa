@@ -7,43 +7,68 @@ from typing import Any
 from aftafa.utils.helpers import parse_jsonpath
 
 
-class Loader(ABC):
+class DataDestination(ABC):
+    """Abstract FileDataDestination class.
+
+    Args:
+        ABC (_type_): _description_
+    """
     def __init__(self) -> None:
-        pass
+        self._destination_type: str = "abstract"
 
     @abstractmethod
     def load(self) -> None:
         pass
 
 
-class FileLoader(Loader):
-    """Abstract FileLoader class."""
-    def __init__(self, output_path: str | None) -> None:
+class FileDataDestination(DataDestination):
+    """Abstract FileDataDestination class.
+
+    Args:
+        DataDestination (_type_): _description_
+    """
+    def __init__(self, output_path: str | None, file_extension: str = "dat") -> None:
+        self._destination_type: str = "file"
         if not Path(output_path).is_dir():
             raise FileNotFoundError("")
         self._path = Path(output_path)
+        self.file_extension = file_extension
     
     def generate_random_ts(self) -> str:
         return datetime.now().strftime('%d-%m-%Y_%H-%M-%S')
 
     def load(self, data: bytes) -> None:
-        if data:
-            with open((self._path / f'xml_loaded_{self.generate_random_ts()}.dat'), 'wb') as f:
+        filename: str = f'raw_data_loaded_{self.generate_random_ts()}.{self.file_extension}'
+
+        if data and isinstance(data, bytes):
+            with open((self._path / filename), 'wb') as f:
                 f.write(data)
 
 
-class XMLLoader(FileLoader):
+class XMLDataDestination(FileDataDestination):
+    """XML destination
+
+    Args:
+        FileDataDestination (_type_): _description_
+    """
     def __init__(self, output_path: str | None) -> None:
         super().__init__(output_path)
+        self._destination_type: str = "xml"
 
     def load(self, data: str) -> None:
         with open((self._path / f'xml_loaded_{self.generate_random_ts()}.xml'), 'w', encoding='utf-8') as f:
             f.write(data)
 
 
-class JSONLoader(FileLoader):
+class JSONDataDestination(FileDataDestination):
+    """JSON destination
+
+    Args:
+        FileDataDestination (_type_): _description_
+    """
     def __init__(self, output_path: str | None) -> None:
         super().__init__(output_path)
+        self._destination_type: str = "json"
 
     def _validate_data(self, data: dict[str, Any] | bytes) -> None:
         if isinstance(data, bytes):
@@ -56,13 +81,19 @@ class JSONLoader(FileLoader):
             json.dump(data, f, ensure_ascii=False)
             
 
-class JSONlLoader(FileLoader):
+class JSONlDataDestination(FileDataDestination):
+    """JSONl destination
+
+    Args:
+        FileDataDestination (_type_): _description_
+    """
     def __init__(
             self,
             output_path: str | None,
             jsonpath: str = ''
     ) -> None:
         super().__init__(output_path)
+        self._destination_type: str = "jsonl"
         self.jsonpath = jsonpath
         
 
@@ -103,16 +134,16 @@ class JSONlLoader(FileLoader):
         return None    
 
 
-class SQLLoader(Loader): 
+class SQLDataDestination(DataDestination):
+    """SQL Data destination
+
+    Args:
+        DataDestination (_type_): _description_
+    """
     def __init__(self) -> None:
         super().__init__()
+        self._destination_type: str = "sql"
 
     def load(self) -> None:
         pass
 
-
-
-if __name__ == '__main__':
-    jl = JSONLoader()
-    print('ok')
-    

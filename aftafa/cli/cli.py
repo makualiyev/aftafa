@@ -11,6 +11,8 @@ from pathlib import Path
 
 import click
 
+from aftafa.common.pipeline import Pipeline, PipelineConfig
+
 
 @click.group(
         help="aftafa helps you run pipelines in your environment.",
@@ -35,6 +37,10 @@ def run(
     config: str
 ):
     click.secho(f'Running pipeline from {source} to {destination} using config file {config}', fg='yellow')
+    pipe_cfg = PipelineConfig(config)
+    p = Pipeline(pipeline_name=f'{source}-to-{destination}', pipeline_config=pipe_cfg)
+    p.run(naive=True)
+    click.secho(f'Pipeline {p.name} ran successfully!', fg='yellow')
 
 
 @click.command(help="Test pipeline with source and destination or provide a config file with \

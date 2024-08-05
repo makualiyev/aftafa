@@ -21,6 +21,7 @@ foo@bar:~$ python -m pip install -e .
 foo@bar:~$ python -m pip install -r requirements.dev.txt
 foo@bar:~$ python -m aftafa --version
 ```
+You can check a working example of a pipeline moving data from email to a raw file [here](examples/email-to-rawfile/example.py).
 
 # Development stack / ideas
 
@@ -46,10 +47,8 @@ foo@bar:~$ python -m aftafa --version
   - [ ] `gspread` maybe?
   - [ ] remove `jupyter` + `ipython`
 - [ ] configuration file parser
-- [x] add `resource` class (ref: dlt-hub)
-  - [ ] JSONResource -> JSONLoader is not working correctly, check it with supply_orders JSON file from OZON.
-- [x] add `mail_manager` into client.email [INPROCESS]
-    - [x] implement client mail to email resource
+- [ ] `DataSource` source class implementation, change naive `extract` method to return generators (yield data -> more efficient)
+  - [ ] JSONDataSource -> JSONDataDestination is not working correctly, check it with supply_orders JSON file from OZON.
 - [ ] implement logging and change all print statements
 - [ ] add poetry to the project
 - [ ] add schema resolver in `utils`. It'll help us with parsing the Swagger/OpenAPI documentation

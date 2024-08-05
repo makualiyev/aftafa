@@ -6,17 +6,20 @@ import random
 import string
 import shutil
 import json
-from typing import Any
+from typing import Any, Generator
 
-import pandas as pd
-
-from aftafa.common.loader import Loader
-from aftafa.client.baseclient import BaseClient
+from aftafa.client.mail.client import IMAPClient
 from aftafa.utils.helpers import sizeof_fmt
 
 
-class Resource(ABC):
+class DataSource(ABC):
+    """Abstract class for data sources.
+
+    Args:
+        ABC (_type_): _description_
+    """
     def __init__(self) -> None:
+        self._source_type: str = "abstract"
         self.is_extractable: bool = True
         self.is_empty: bool = False
         pass
@@ -24,48 +27,68 @@ class Resource(ABC):
     @abstractmethod
     def extract(self) -> None:
         pass
-
-    @abstractmethod
-    def get_loader(self) -> Loader:
-        pass
     
     
-class HTTPResource(Resource):
+class HTTPDataSource(DataSource):
     def __init__(self) -> None:
         super().__init__()
+        self._source_type = "http"
 
-    def extract(self, client: BaseClient) -> None:
-        return super().extract()
-    
-    def get_loader(self) -> Loader:
-        return super().get_loader()
+    def extract(self) -> None:
+        pass
+
     
 
-class EmailResource(Resource):
+class EmailDataSource(DataSource):
     """Email resource is implemented via Yandex Mail
     client class in ../client/mail/client.py. Ideally
     it should get emails from Mail Server (IMAP Protocol)
-    and parse them to get the payloads and pass them to                 # TODO: or save .eml files and parse them later?
-    FileLoader."""
-    def __init__(self) -> None:
+    and parse them to get the payloads and pass them to                         # TODO: or save .eml files and parse them later?
+    FileLoader.
+
+    Args:
+        DataSource (_type_): _description_
+
+    Methods:
+        _extract_as_eml (None): _description_
+        extract (None): _description_
+    """
+    def __init__(self, config_file: str | Path) -> None:
         super().__init__()
+        self._source_type = "email"
+        self.config_file = config_file
+        self._config: dict[str, Any] = self._set_config_from_file(config_file_path=config_file)
 
-    def _extract_as_eml(self) -> None:
-        pass
+    def _set_config_from_file(self, config_file_path: str | Path) -> None:
+        if isinstance(config_file_path, str):
+            config_file_path = Path(config_file_path)
+        if not config_file_path.exists():
+            raise FileNotFoundError(f"There is no file with the given path!")
+        
+        with open(config_file_path, 'rb') as f:
+            config = json.load(f)
+        return config
 
-    def extract(self, naive: bool = False) -> None:
+    def _extract_as_eml(self) -> Generator[list[dict[str, str | bytes]] | list[None], None, None]:
+        with IMAPClient(config_file=self.config_file) as client:
+            for email in client.get_email(
+                                mailbox=self._config.get('imap_mailbox'),
+                                limit=self._config.get('imap_email_limit'),
+                                email_since=self._config.get('imap_email_since')
+                            ):
+                yield email['data']
+
+    def extract(self, naive: bool = False) -> Generator[list[dict[str, str | bytes]] | list[None], None, None] | None:
         if naive:
-            self._extract_as_eml()
-            return
-        return
-    
-    def get_loader(self) -> Loader:
-        return super().get_loader()
+            return self._extract_as_eml()
+        return None
 
 
-class FileResource(Resource):
+
+class FileDataSource(DataSource):
     def __init__(self, path: Path) -> None:
         super().__init__()
+        self._source_type = "file"
         if isinstance(path, str):
             path = Path(path)
         if not path.exists():
@@ -104,14 +127,13 @@ class FileResource(Resource):
 
         return None
 
-    
-    def get_loader(self) -> Loader:
-        return super().get_loader()
 
 
-class JSONResource(FileResource):
+
+class JSONDataSource(FileDataSource):
     def __init__(self, path: Path) -> None:
         super().__init__(path)
+        self._source_type = "json"
         if self.file_extension not in ('.json', '.JSON', '.jsonl', '.JSONL'):
             raise TypeError("Not valid JSON file!")
         # self.file_contents_meta['contents'] = keys?
@@ -147,14 +169,13 @@ class JSONResource(FileResource):
             self._deserialize()
             return self._deserialized
         return None
-    
-    def get_loader(self) -> Loader:
-        return super().get_loader()
+
     
 
-class ExcelResource(FileResource):
+class ExcelDataSource(FileDataSource):
     def __init__(self, path: Path) -> None:
         super().__init__(path)
+        self._source_type = "excel"
         if self.file_extension not in ('.xlsx', '.xls', '.XLSX', '.XLS'):
             raise TypeError("Not valid Excel file!")
         self.file_contents_meta['contents'] = self._extract_xl_sheet_names()
@@ -180,43 +201,41 @@ class ExcelResource(FileResource):
         )
         pass
         
-    def _extract_xl_sheet_names(self) -> list[str | None]:
-        try:
-            with pd.ExcelFile(self.file_path) as xl:
-                return xl.sheet_names
-        except ValueError as val_err:
-            if val_err.args[0] == "Excel file format cannot be determined, you must specify an engine manually.":
-                print(val_err)
-                print(f"{self.file_name} is not a valid (temporary lock `~$_.xlsx`) or empty Excel file!")
-                self.is_extractable = False
-                return []
-        except KeyError as key_err:
-            if key_err.args[0] == "There is no item named 'xl/sharedStrings.xml' in the archive":
-                print(key_err)
-                self._sanitize_xl_file()
-                with pd.ExcelFile(self.file_path) as xl:
-                    return xl.sheet_names
+    # def _extract_xl_sheet_names(self) -> list[str | None]:
+    #     try:
+    #         with pd.ExcelFile(self.file_path) as xl:
+    #             return xl.sheet_names
+    #     except ValueError as val_err:
+    #         if val_err.args[0] == "Excel file format cannot be determined, you must specify an engine manually.":
+    #             print(val_err)
+    #             print(f"{self.file_name} is not a valid (temporary lock `~$_.xlsx`) or empty Excel file!")
+    #             self.is_extractable = False
+    #             return []
+    #     except KeyError as key_err:
+    #         if key_err.args[0] == "There is no item named 'xl/sharedStrings.xml' in the archive":
+    #             print(key_err)
+    #             self._sanitize_xl_file()
+    #             with pd.ExcelFile(self.file_path) as xl:
+    #                 return xl.sheet_names
                 
-    def get_dataframe(self, sheet_name: str) -> pd.DataFrame:
-        with pd.ExcelFile(self.file_path) as xl:
-            return xl.parse(sheet_name=sheet_name)
+    # def get_dataframe(self, sheet_name: str) -> pd.DataFrame:
+    #     with pd.ExcelFile(self.file_path) as xl:
+    #         return xl.parse(sheet_name=sheet_name)
         
-    def _extract_dataframes(self) -> list[pd.DataFrame | None]:
-        extracted_dataframes = []
-        for sheet_name in self.file_contents_meta['contents']:
-            extracted_dataframes.append(
-                {
-                    sheet_name: self.get_dataframe(sheet_name=sheet_name)
-                }
-            )
-        return extracted_dataframes
+    # def _extract_dataframes(self) -> list[pd.DataFrame | None]:
+    #     extracted_dataframes = []
+    #     for sheet_name in self.file_contents_meta['contents']:
+    #         extracted_dataframes.append(
+    #             {
+    #                 sheet_name: self.get_dataframe(sheet_name=sheet_name)
+    #             }
+    #         )
+    #     return extracted_dataframes
 
-    def extract(self, naive: bool = False) -> list[pd.DataFrame | None] | None:
-        if naive:
-            return self._extract_dataframes()
-        return None
-
+    # def extract(self, naive: bool = False) -> list[pd.DataFrame | None] | None:
+    #     if naive:
+    #         return self._extract_dataframes()
+    #     return None
     
-    def get_loader(self) -> Loader:
-        return super().get_loader()
-    
+    def extract(self, naive: bool = False) -> bytes | None:
+        return super().extract(naive)

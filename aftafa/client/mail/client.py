@@ -1,16 +1,15 @@
+from pathlib import Path
 import imaplib
 import base64
 import json
 from datetime import datetime
 import email
+from typing import Generator
 import quopri
 
 from aftafa.common.config import Config
-from aftafa.utils.helpers import color_fmt, sizeof_fmt
+from aftafa.utils.helpers import sizeof_fmt
 
-
-with open(Config()._get_meta_credentials_file(channel='MAIL'), 'rb') as f:
-    META = json.loads(f.read())
 
 class RFC822MessageParser:
     """
@@ -25,6 +24,14 @@ class RFC822MessageParser:
         self.rfc822_metadata: dict[str, str | int] = self._parse_metadata_part(metadata_raw=rfc822_message[0])
 
     def _parse_metadata_part(self, metadata_raw: bytes) -> dict[str, str | int]:
+        """Parses metadata part.
+
+        Args:
+            metadata_raw (bytes): metadata in bytes (answer from `.fetch` command)
+
+        Returns:
+            dict[str, str | int]: returned in a more readable way
+        """
         message_part = metadata_raw.split()
         uid = int(message_part[0].decode())
         standard = message_part[1].decode().replace('(', '').replace(' ', '')
@@ -41,9 +48,10 @@ class RFC822MessageParser:
         pass
 
 
-class YandexMailClient:
+class IMAPClient:
     """
-    IMAP client for interacting with Yandex Mail.
+    IMAP client for interacting with mail server
+    (e. g. Yandex Mail).
 
     Args:
         user (str): username that maps username and
@@ -57,24 +65,21 @@ class YandexMailClient:
     Returns:
         None: initialize IMAP4_SSL class
     """
-    IMAP_HOST_URL: str = "imap.yandex.com"
-    IMAP_HOST_PORT: int = 993
-
     def __init__(
             self,
-            user: str = 'magsud_delventa'
+            config_file: str | Path
     ) -> None:
-        self.username: str = ""
-        self.password: str = ""
-        try:
-            self.username = META['mails'][user]['username']
-            self.password = META['mails'][user]['password']
-        except KeyError as key_err:
-            if key_err.args[0] == f"{user}":
-                print(f"There are no credentials provided for user '{user}'")
-            else:
-                print(key_err)
+        self._config: dict[str, str | int] = self._set_config_from_file(config_file_path=config_file)
             
+    def _set_config_from_file(self, config_file_path: str | Path) -> None:
+        if isinstance(config_file_path, str):
+            config_file_path = Path(config_file_path)
+        if not config_file_path.exists():
+            raise FileNotFoundError(f"There is no file with the given path!")
+        
+        with open(config_file_path, 'rb') as f:
+            config = json.load(f)
+        return config
 
     @property
     def _state(self) -> str | None:
@@ -83,12 +88,17 @@ class YandexMailClient:
     
     def _login(self) -> None:
         if not 'mail' in self.__dict__:
-            self.mail = imaplib.IMAP4_SSL(host=self.IMAP_HOST_URL, port=self.IMAP_HOST_PORT)
+            self.mail = imaplib.IMAP4_SSL(
+                host=self._config.get('imap_host_url'), port=self._config.get('imap_host_port')
+            )
         try:
-            self.mail.login(self.username, self.password)
+            self.mail.login(
+                self._config.get('imap_username'),
+                self._config.get('imap_password')
+            )
         except imaplib.IMAP4.error as imap4_login_err:
             print(f"IMAP4.error: {imap4_login_err}")
-            print(f"Can't login with provided credentials for '{self.username}'!")
+            print(f"Can't login with provided credentials for '{self.imap_username}'!")
             return None
         return None
     
@@ -98,7 +108,10 @@ class YandexMailClient:
         self.mail.logout()
 
     def __enter__(self):
-        self.mail = imaplib.IMAP4_SSL(host=self.IMAP_HOST_URL, port=self.IMAP_HOST_PORT)
+        self.mail = imaplib.IMAP4_SSL(
+            host=self._config.get('imap_host_url'),
+            port=self._config.get('imap_host_port')
+        )
         if self._state == "NONAUTH":
             self._login()
             return self
@@ -107,6 +120,24 @@ class YandexMailClient:
 
     def __exit__(self, *args):
         self._close()
+
+    def _list_mailboxes(self, mailbox: str = '""', pattern: str = '*') -> None:
+        """convenience method
+
+        Args:
+            mailbox (str, optional): _description_. Defaults to '""'.
+            pattern (str, optional): _description_. Defaults to '*'.
+
+        Returns:
+            _type_: _description_
+        """
+        mail_listed: tuple[bytes, list[bytes]] = self.mail.list(directory=mailbox, pattern=pattern)
+        status, result = mail_listed
+        if status != 'OK':
+            return None
+        return [''.join(i.decode().split('"|"')[1:])[1:].replace('"', "") for i in result]
+
+
     
     def _select_mailbox(self, mailbox: str) -> str:
         try:
@@ -134,12 +165,13 @@ class YandexMailClient:
 
         Args:
             mailbox (str): _description_
-            date_ (str | None, optional): _description_. Defaults to None.
-            subject (str, optional): _description_. Defaults to "".
-            from_ (str, optional): _description_. Defaults to "".
+            email_since (str | None, optional): _description_. Defaults to None.
+            email_subject (str, optional): _description_. Defaults to "".
+            email_from (str, optional): _description_. Defaults to "".
 
         Returns:
-            list[bytes] | None: _description_
+            list[bytes] | None: a list of message UIDs in bytes string,
+            e. g. b'1 2 3'
         """
         selected_mailbox: str = self._select_mailbox(mailbox=mailbox)
         if selected_mailbox != 'OK':
@@ -156,7 +188,7 @@ class YandexMailClient:
         if email_subject:
             email_subject = f'SUBJECT "{email_subject}" '
 
-        search_query: str = f'({email_subject}SINCE "{date_string}"{email_since})'
+        search_query: str = f'({email_subject}SINCE "{date_string}")'
         print(f'THE SEARCH QUERY IS ---> {search_query}')
         try:
             status, data = self.mail.search(None, search_query)
@@ -197,6 +229,14 @@ class YandexMailClient:
         are interested in message itself, which is `fetched_data[0][1]`, so
         naive implementation would be this. TODO: think of improving this method
         to be more error-prone.
+
+        Args:
+            message_id (bytes): the UID of message that's been previously
+            searched.
+
+        Returns:
+            list[tuple[bytes], bytes] | list[None]: returns raw fetched data by
+            message UID in bytes.
         """
         if self._state != 'SELECTED':
             return []
@@ -209,11 +249,17 @@ class YandexMailClient:
         return data
     
     def _extract_rfc822_parts(self, message_data: list[tuple[bytes], bytes]) -> None:
-        """
-        After we've fetched message using `_fetch_email` method we want
+        """After we've fetched message using `_fetch_email` method we want
         to check if it has the same structure as it is described in the
         standard. The method returns just email part if the check is suc-
         cessfull and logs odd results.
+
+        Args:
+            message_data (list[tuple[bytes], bytes]): raw message data that
+            we get from `FETCH` command.
+
+        Returns:
+            _type_: 
         """
         if not isinstance(message_data, list):
             print(f"func:_extract_rfc822: type of fetched message parts are not compliant, type -> {type(message_data)}")
@@ -248,12 +294,27 @@ class YandexMailClient:
     def get_email(
             self,
             mailbox: str,
+            limit: int = 0,
             email_since: str | None = None,
             email_subject: str = "",
             email_from: str = ""
-    ) -> None:
-        """Searches in a given mailbox
-        and returns list of bytes of message ids
+    ) -> Generator[list[dict[str, str | bytes]] | list[None], None, None]:
+        """Searches in a given mailbox and returns list of bytes of message
+        ids.
+
+        Args:
+            mailbox (str): _description_
+            limit (int): Get first `limit` mails.
+            email_since (str | None, optional): Get mails from the given date
+            in this format %Y-%m-%d. Defaults to None.
+            email_subject (str, optional): _description_. Defaults to "".
+            email_from (str, optional): _description_. Defaults to "".
+
+        Returns:
+            _type_: _description_
+
+        Yields:
+            Generator[list[dict[str, str | bytes]] | list[None], None, None]: _description_
         """
         email_list: list = []
         search_result: list[bytes] | None = self._search_mailbox(
@@ -271,19 +332,64 @@ class YandexMailClient:
             return None
         
         # e. g. search_result is something like [(b'1 2 3', b'(RFC 822)')]
-        for search_result_message_id in search_result[0].split():
+        target_message_uids: list[bytes] = search_result[0].split()
+        if not limit:
+            limit = len(target_message_uids)
+        
+        for search_result_message_id in target_message_uids[:limit]:
             fetched_message: list[tuple[bytes], bytes] | list[None] = self._fetch_email(message_id=search_result_message_id)
             extracted_rfc822_parts: list[dict[str, str | int], bytes] = self._extract_rfc822_parts(message_data=fetched_message)
             fetched_message_metadata, fetched_message_data = extracted_rfc822_parts
 
             if fetched_message:
-                email_list.append({
+                yield {
                     'metadata': fetched_message_metadata,
                     'data': fetched_message_data
-                })
-        return email_list
+                }
 
 
+class SMTPClient:
+    """
+    SMTP client for interacting with mail server
+    (e. g. Yandex Mail).
+
+    Args:
+        user (str): username that maps username and
+        password from config file.
+        config (str): config file.
+
+    Raises:
+        KeyError: if no entry for the user in con-
+        fig.
+
+    Returns:
+        None: initialize ? class
+    """
+    def __init__(
+            self,
+            host_url: str = "smtp.yandex.com",
+            host_port: int = 993,
+            user_config: str = '',
+            user: str = 'magsud_delventa'
+    ) -> None:
+        self.SMTP_HOST_URL: str = host_url
+        self.SMTP_HOST_PORT: int = host_port
+        self.username: str = ""
+        self.password: str = ""
+
+        try:
+            self.username = ''              # TODO: add credentials info
+            self.password = ''              # TODO: add credentials info
+        except KeyError as key_err:
+            if key_err.args[0] == f"{user}":
+                print(f"There are no credentials provided for user '{user}'")
+            else:
+                print(key_err)
+
+    def send_email(self) -> None:
+        """TBI
+        """
+        pass
         
 
 

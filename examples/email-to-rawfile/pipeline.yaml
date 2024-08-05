@@ -1,0 +1,9 @@
+source:
+  type: email
+  config_file: "test-samples/mail_config.json"
+destination:
+  type: file
+  output_path: "test-samples"
+  file_extension: "eml"
+  transformer:
+    jsonpath: "$.data"
