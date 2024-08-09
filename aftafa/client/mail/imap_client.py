@@ -7,7 +7,6 @@ import email
 from typing import Generator
 import quopri
 
-from aftafa.common.config import Config
 from aftafa.utils.helpers import sizeof_fmt
 
 
@@ -181,14 +180,14 @@ class IMAPClient:
             email_since = datetime.today()
         else:
             email_since = datetime.strptime(email_since, '%Y-%m-%d')
-        date_string = email_since.strftime('%d-%b-%Y')
+        date_string: str = f'SINCE "{email_since.strftime("%d-%b-%Y")}"'
         
         if email_from:
             email_from = f' FROM "{email_from}"'
         if email_subject:
             email_subject = f'SUBJECT "{email_subject}" '
 
-        search_query: str = f'({email_subject}SINCE "{date_string}")'
+        search_query: str = f'({email_subject}{date_string}{email_from})'
         print(f'THE SEARCH QUERY IS ---> {search_query}')
         try:
             status, data = self.mail.search(None, search_query)

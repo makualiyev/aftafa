@@ -6,11 +6,11 @@ from functools import wraps
 from collections.abc import MutableMapping
 from typing import Any
 import string
+import random
 import base64
 import time
 
 from colorama import Fore
-# import jsonpath_ng
 
 
 class bcolors:
@@ -107,6 +107,18 @@ def strip_chars(string_: str) -> str:
 def split_into_chunks(it, size):
     it = iter(it)
     return list(iter(lambda: tuple(islice(it, size)), ()))
+
+def generate_random_hash(n: int = 10) -> str:
+    """Generates random string of given `n` length.
+    Args:
+        n (int, optional): number of characters. Defaults to 10.
+
+    Returns:
+        str: random hash
+    """
+    temp_hash: str = ''.join(random.choices(string.ascii_letters + string.digits, k=n))
+    return temp_hash
+
 
 def timeit(func):
     @wraps(func)

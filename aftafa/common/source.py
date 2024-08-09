@@ -8,7 +8,7 @@ import shutil
 import json
 from typing import Any, Generator
 
-from aftafa.client.mail.client import IMAPClient
+from aftafa.client.mail.imap_client import IMAPClient
 from aftafa.utils.helpers import sizeof_fmt
 
 
@@ -74,7 +74,8 @@ class EmailDataSource(DataSource):
             for email in client.get_email(
                                 mailbox=self._config.get('imap_mailbox'),
                                 limit=self._config.get('imap_email_limit'),
-                                email_since=self._config.get('imap_email_since')
+                                email_since=self._config.get('imap_email_since'),
+                                email_from=self._config.get('imap_email_from')
                             ):
                 yield email['data']
 

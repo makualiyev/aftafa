@@ -4,7 +4,7 @@ from pathlib import Path
 from abc import ABC, abstractmethod
 from typing import Any
 
-from aftafa.utils.helpers import parse_jsonpath
+from aftafa.utils.helpers import parse_jsonpath, generate_random_hash
 
 
 class DataDestination(ABC):
@@ -35,7 +35,9 @@ class FileDataDestination(DataDestination):
         self.file_extension = file_extension
     
     def generate_random_ts(self) -> str:
-        return datetime.now().strftime('%d-%m-%Y_%H-%M-%S')
+        random_hash: str = generate_random_hash()
+        timestamp: str = datetime.now().strftime('%d-%m-%Y_%H-%M-%S')
+        return '_'.join([timestamp, random_hash])
 
     def load(self, data: bytes) -> None:
         filename: str = f'raw_data_loaded_{self.generate_random_ts()}.{self.file_extension}'
