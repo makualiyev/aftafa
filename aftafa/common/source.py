@@ -2,6 +2,7 @@ from abc import ABC, abstractmethod
 from hashlib import md5
 from pathlib import Path
 from zipfile import ZipFile, ZipInfo, ZIP_DEFLATED
+import email
 import random
 import string
 import shutil
@@ -9,6 +10,7 @@ import json
 from typing import Any, Generator
 
 from aftafa.client.mail.imap_client import IMAPClient
+from aftafa.client.mail.parser import EmailParser
 from aftafa.utils.helpers import sizeof_fmt
 
 
@@ -53,35 +55,50 @@ class EmailDataSource(DataSource):
         _extract_as_eml (None): _description_
         extract (None): _description_
     """
-    def __init__(self, config_file: str | Path) -> None:
+    def __init__(self, configs: dict[str, str]) -> None:
         super().__init__()
         self._source_type = "email"
-        self.config_file = config_file
-        self._config: dict[str, Any] = self._set_config_from_file(config_file_path=config_file)
+        self._configs = configs
+        self._credentials: dict[str, Any] = self._set_credentials_from_file(credentials_file_path=self._configs.get('credentials_file'))
 
-    def _set_config_from_file(self, config_file_path: str | Path) -> None:
-        if isinstance(config_file_path, str):
-            config_file_path = Path(config_file_path)
-        if not config_file_path.exists():
+    def _set_credentials_from_file(self, credentials_file_path: str | Path) -> dict[str, str] | None:
+        if isinstance(credentials_file_path, str):
+            credentials_file_path = Path(credentials_file_path)
+        if not credentials_file_path.exists():
             raise FileNotFoundError(f"There is no file with the given path!")
-        
-        with open(config_file_path, 'rb') as f:
-            config = json.load(f)
-        return config
+        with open(credentials_file_path, 'rb') as f:
+            credentials = json.load(f)
+        return credentials
+    
+    def _init_mail(self) -> Generator[list[dict[str, str | bytes]] | list[None], None, None]:
+        with IMAPClient(configs=self._configs, credentials=self._credentials) as client:
+            for fetched_email_data in client.get_email(
+                                mailbox=self._configs.get('mailbox'),
+                                limit=self._configs.get('email_limit'),
+                                email_since=self._configs.get('email_since'),
+                                email_from=self._configs.get('email_from')
+                            ):
+                yield fetched_email_data
 
     def _extract_as_eml(self) -> Generator[list[dict[str, str | bytes]] | list[None], None, None]:
-        with IMAPClient(config_file=self.config_file) as client:
-            for email in client.get_email(
-                                mailbox=self._config.get('imap_mailbox'),
-                                limit=self._config.get('imap_email_limit'),
-                                email_since=self._config.get('imap_email_since'),
-                                email_from=self._config.get('imap_email_from')
-                            ):
-                yield email['data']
+        yield from self._init_mail()
+
+    def _extract_attachments(self, attachment_file_type_accept: str | None = None) -> Generator[ dict[str, Any] | None, None, None]:
+        if not attachment_file_type_accept:
+            self._configs.get('attachment_file_type_accept')
+        for fetched_email_data in self._init_mail():
+            parsed_email: EmailParser = EmailParser(ctx=fetched_email_data)
+            for attachment in parsed_email.attachments:
+                if attachment.decoded_file_extension in attachment_file_type_accept.split(';'):
+                    attachment = attachment.__dict__
+                    attachment['__source_type'] = self._source_type
+                    yield attachment
 
     def extract(self, naive: bool = False) -> Generator[list[dict[str, str | bytes]] | list[None], None, None] | None:
         if naive:
             return self._extract_as_eml()
+        if self._configs.get('attachment_only'):
+            return self._extract_attachments(attachment_file_type_accept=self._configs.get('attachment_file_type_accept'))
         return None
 
 

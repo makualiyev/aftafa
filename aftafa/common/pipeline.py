@@ -23,16 +23,21 @@ class PipelineConfig:
     def _set_source(self) -> DataSource | None:
         source_config: dict[str, Any] = self._config.get('source')
         if source_config.get('type') == 'email':
-            source = EmailDataSource(config_file=source_config.get('config_file'))
+            source = EmailDataSource(configs=source_config)
             return source
         
     def _set_destination(self) -> DataDestination | None:
         destination_config: dict[str, Any] = self._config.get('destination')
         if destination_config.get('type') == 'file':
-            destination = FileDataDestination(
-                output_path=destination_config.get('output_path'),
-                file_extension=destination_config.get('file_extension')
-            )
+            if destination_config.get('detect_file_extension'):
+                destination = FileDataDestination(
+                    output_path=destination_config.get('output_path')
+                )
+            else:
+                destination = FileDataDestination(
+                    output_path=destination_config.get('output_path'),
+                    file_extension=destination_config.get('file_extension')
+                )
             return destination
 
 
@@ -63,7 +68,12 @@ class BasePipeline(ABC):
             self.source = pipeline_source
             self.destination = pipeline_destination
         else:
-            raise ValueError("Couldn't create pipeline without config!")
+            raise ValueError("""
+                Couldn't create pipeline without config or passed source and destination!""")
+        
+    @abstractmethod
+    def set_state(self) -> None:
+        pass
 
     @abstractmethod
     def run(self) -> None:
@@ -84,6 +94,9 @@ class Pipeline(BasePipeline):
             pipeline_config: PipelineConfig | None = None
     ) -> None:
         super().__init__(pipeline_name, pipeline_source, pipeline_destination, pipeline_config)
+
+    def set_state(self) -> None:
+        pass
 
     def run(self, naive: bool = False) -> None:
         source = self.source

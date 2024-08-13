@@ -1,3 +1,4 @@
+from base64 import b64decode
 import json
 from datetime import datetime
 from pathlib import Path
@@ -27,23 +28,42 @@ class FileDataDestination(DataDestination):
     Args:
         DataDestination (_type_): _description_
     """
-    def __init__(self, output_path: str | None, file_extension: str = "dat") -> None:
+    def __init__(self, output_path: str | None, filename: str | None = None, file_extension: str = "dat") -> None:
         self._destination_type: str = "file"
         if not Path(output_path).is_dir():
             raise FileNotFoundError("")
         self._path = Path(output_path)
         self.file_extension = file_extension
+        self.filename = f'raw_data_loaded_{self.generate_random_ts()}.{self.file_extension}'
     
     def generate_random_ts(self) -> str:
         random_hash: str = generate_random_hash()
         timestamp: str = datetime.now().strftime('%d-%m-%Y_%H-%M-%S')
         return '_'.join([timestamp, random_hash])
 
-    def load(self, data: bytes) -> None:
-        filename: str = f'raw_data_loaded_{self.generate_random_ts()}.{self.file_extension}'
+    def _preload(self, data: Any | None) -> bytes | Any | None:
+        if not data:
+            return None
+        if isinstance(data, bytes):
+            return data
+        if isinstance(data, dict):
+            source_type: str = data.get('__source_type')
+            if source_type == "email":
+                self.file_extension = data.get('decoded_file_extension')
+                for mailbox_part in data.get('email_mailbox').split('|'):
+                    self._path = self._path / mailbox_part
+                self._path = self._path / data.get('email_from')
+                self._path.mkdir(parents=True, exist_ok=True)
+                self.filename = '.'.join(data.get('decoded_filename').split('.')[:-1])
+                self.filename = self.filename + '['+ data.get('attachment_uid') + ']' + self.file_extension
+                encoded_data: bytes = b64decode(data.get('data'))
+                return encoded_data
+        return None
 
+    def load(self, data: bytes) -> None:
+        data = self._preload(data=data)
         if data and isinstance(data, bytes):
-            with open((self._path / filename), 'wb') as f:
+            with open((self._path / self.filename), 'wb') as f:
                 f.write(data)
 
 

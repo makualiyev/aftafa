@@ -1,9 +1,4 @@
 {
-    "imap_host_url": "imap.yandex.com",
-    "imap_host_port": 993,
     "imap_username": "username@mail.com",
-    "imap_password": "password",
-    "imap_mailbox": "mailbox",
-    "imap_email_since": "2024-08-05",
-    "imap_email_limit": 1
+    "imap_password": "password"
 }

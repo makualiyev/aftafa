@@ -66,19 +66,24 @@ class IMAPClient:
     """
     def __init__(
             self,
-            config_file: str | Path
+            imap_host_url: str | None = None,
+            imap_host_port: int | None = None,
+            imap_username: str | None = None,
+            imap_password: str | None = None,
+            configs: dict[str, str] | None = None,
+            credentials: dict[str, str] | None = None
     ) -> None:
-        self._config: dict[str, str | int] = self._set_config_from_file(config_file_path=config_file)
-            
-    def _set_config_from_file(self, config_file_path: str | Path) -> None:
-        if isinstance(config_file_path, str):
-            config_file_path = Path(config_file_path)
-        if not config_file_path.exists():
-            raise FileNotFoundError(f"There is no file with the given path!")
-        
-        with open(config_file_path, 'rb') as f:
-            config = json.load(f)
-        return config
+        self.imap_host_url = imap_host_url
+        self.imap_host_port = imap_host_port
+        self.imap_username = imap_username
+        self.imap_password = imap_password
+
+        if credentials and configs:
+            self.imap_host_url = configs.get('imap_host_url')
+            self.imap_host_port = configs.get('imap_host_port')
+            self.imap_username = credentials.get('imap_username')
+            self.imap_password = credentials.get('imap_password')
+
 
     @property
     def _state(self) -> str | None:
@@ -88,12 +93,13 @@ class IMAPClient:
     def _login(self) -> None:
         if not 'mail' in self.__dict__:
             self.mail = imaplib.IMAP4_SSL(
-                host=self._config.get('imap_host_url'), port=self._config.get('imap_host_port')
+                host=self.imap_host_url,
+                port=self.imap_host_port
             )
         try:
             self.mail.login(
-                self._config.get('imap_username'),
-                self._config.get('imap_password')
+                self.imap_username,
+                self.imap_password
             )
         except imaplib.IMAP4.error as imap4_login_err:
             print(f"IMAP4.error: {imap4_login_err}")
@@ -108,8 +114,8 @@ class IMAPClient:
 
     def __enter__(self):
         self.mail = imaplib.IMAP4_SSL(
-            host=self._config.get('imap_host_url'),
-            port=self._config.get('imap_host_port')
+            host=self.imap_host_url,
+            port=self.imap_host_port
         )
         if self._state == "NONAUTH":
             self._login()
@@ -339,57 +345,13 @@ class IMAPClient:
             fetched_message: list[tuple[bytes], bytes] | list[None] = self._fetch_email(message_id=search_result_message_id)
             extracted_rfc822_parts: list[dict[str, str | int], bytes] = self._extract_rfc822_parts(message_data=fetched_message)
             fetched_message_metadata, fetched_message_data = extracted_rfc822_parts
+            fetched_message_metadata['mailbox'] = mailbox
 
             if fetched_message:
                 yield {
                     'metadata': fetched_message_metadata,
                     'data': fetched_message_data
                 }
-
-
-class SMTPClient:
-    """
-    SMTP client for interacting with mail server
-    (e. g. Yandex Mail).
-
-    Args:
-        user (str): username that maps username and
-        password from config file.
-        config (str): config file.
-
-    Raises:
-        KeyError: if no entry for the user in con-
-        fig.
-
-    Returns:
-        None: initialize ? class
-    """
-    def __init__(
-            self,
-            host_url: str = "smtp.yandex.com",
-            host_port: int = 993,
-            user_config: str = '',
-            user: str = 'magsud_delventa'
-    ) -> None:
-        self.SMTP_HOST_URL: str = host_url
-        self.SMTP_HOST_PORT: int = host_port
-        self.username: str = ""
-        self.password: str = ""
-
-        try:
-            self.username = ''              # TODO: add credentials info
-            self.password = ''              # TODO: add credentials info
-        except KeyError as key_err:
-            if key_err.args[0] == f"{user}":
-                print(f"There are no credentials provided for user '{user}'")
-            else:
-                print(key_err)
-
-    def send_email(self) -> None:
-        """TBI
-        """
-        pass
-        
 
 
 def escape_b64(encoded_: str) -> str:
