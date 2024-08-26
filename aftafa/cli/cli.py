@@ -29,17 +29,19 @@ def cli(ctx: click.Context):
                --config. For now it can support only raw pipelining, tbi.",
                no_args_is_help=True)
 @click.option('--config', default=None, help='File with pipeline configuration')
+@click.option('--naive', default=True, help='Load raw files')
 @click.argument('source')
 @click.argument('destination')
 def run(
     source: str,
     destination: str,
-    config: str
+    config: str,
+    naive: bool
 ):
     click.secho(f'Running pipeline from {source} to {destination} using config file {config}', fg='yellow')
     pipe_cfg = PipelineConfig(config)
     p = Pipeline(pipeline_name=f'{source}-to-{destination}', pipeline_config=pipe_cfg)
-    p.run(naive=True)
+    p.run(naive=naive)
     click.secho(f'Pipeline {p.name} ran successfully!', fg='yellow')
 
 

@@ -1,8 +1,7 @@
 from abc import ABC, abstractmethod
 from hashlib import md5
 from pathlib import Path
-from zipfile import ZipFile, ZipInfo, ZIP_DEFLATED
-import email
+from zipfile import ZipFile, ZIP_DEFLATED
 import random
 import string
 import shutil
@@ -32,7 +31,11 @@ class DataSource(ABC):
     
     
 class HTTPDataSource(DataSource):
-    def __init__(self) -> None:
+    def __init__(
+        self,
+        domain: str,
+        baseurl: str
+    ) -> None:
         super().__init__()
         self._source_type = "http"
 
@@ -196,7 +199,7 @@ class ExcelDataSource(FileDataSource):
         self._source_type = "excel"
         if self.file_extension not in ('.xlsx', '.xls', '.XLSX', '.XLS'):
             raise TypeError("Not valid Excel file!")
-        self.file_contents_meta['contents'] = self._extract_xl_sheet_names()
+        # self.file_contents_meta['contents'] = self._extract_xl_sheet_names()
 
     def _sanitize_xl_file(self) -> None:
         with (

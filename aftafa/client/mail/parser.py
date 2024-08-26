@@ -6,7 +6,7 @@ from typing import Generator
 from dataclasses import dataclass
 from datetime import datetime
 import email
-import mimetypes
+from email.message import Message
 
 from aftafa.utils.helpers import generate_random_hash
 
@@ -31,10 +31,10 @@ class EmailAttachment:
 
 
 class EmailParser:
-    def __init__(self, ctx: email.message.Message | dict[str, str | bytes]) -> None:
+    def __init__(self, ctx: Message | dict[str, str | bytes]) -> None:
         self.uid: str = generate_random_hash(n=5)
         self.ctx_meta: dict[str, str | int] | None = None
-        if not isinstance(ctx, email.message.Message):
+        if not isinstance(ctx, Message):
             self.ctx_meta = ctx.get('metadata')
             ctx = email.message_from_bytes(ctx.get('data'))
         self.ctx = ctx
@@ -43,7 +43,7 @@ class EmailParser:
         self.email_subject: str = self._get_subject(item=ctx.get('Subject'))
         self.email_content_type: str = ctx.get_content_type()
         self.email_is_multipart: bool = ctx.is_multipart()
-        self.payloads: list[email.message.Message | None] = self._extract_payloads(self.ctx)
+        self.payloads: list[Message | None] = self._extract_payloads(self.ctx)
         self.attachments: list[EmailAttachment | None] = self._extract_attachments()
 
     def _get_from(self, item: str) -> dict[str, str]:
@@ -74,13 +74,13 @@ class EmailParser:
         
         return decoded_ctx_str
     
-    def _extract_payloads(self, ctx: email.message.Message) -> Generator[email.message.Message, None, None]:
+    def _extract_payloads(self, ctx: Message) -> Generator[Message, None, None]:
         for payload in ctx.get_payload():
             if isinstance(payload.get_payload(), list):
                 yield from self._extract_payloads(payload)
             yield payload
 
-    def _extract_attachments(self) -> Generator[email.message.Message, None, None]:
+    def _extract_attachments(self) -> Generator[Message, None, None]:
         if self.ctx_meta:
             message_uid: str = str(self.ctx_meta.get('uid'))
             mailbox: str = str(self.ctx_meta.get('mailbox'))

@@ -34,7 +34,6 @@ class FileDataDestination(DataDestination):
             raise FileNotFoundError("")
         self._path = Path(output_path)
         self.file_extension = file_extension
-        self.filename = f'raw_data_loaded_{self.generate_random_ts()}.{self.file_extension}'
     
     def generate_random_ts(self) -> str:
         random_hash: str = generate_random_hash()
@@ -45,17 +44,20 @@ class FileDataDestination(DataDestination):
         if not data:
             return None
         if isinstance(data, bytes):
+            self.file_path = self._path
+            self.filename = f'raw_data_loaded_{self.generate_random_ts()}.{self.file_extension}'
             return data
         if isinstance(data, dict):
             source_type: str = data.get('__source_type')
             if source_type == "email":
                 self.file_extension = data.get('decoded_file_extension')
+                self.file_path = self._path
                 for mailbox_part in data.get('email_mailbox').split('|'):
-                    self._path = self._path / mailbox_part
-                self._path = self._path / data.get('email_from')
-                self._path.mkdir(parents=True, exist_ok=True)
+                    self.file_path = self.file_path / mailbox_part
+                self.file_path = self.file_path / data.get('email_from')
+                self.file_path.mkdir(parents=True, exist_ok=True)
                 self.filename = '.'.join(data.get('decoded_filename').split('.')[:-1])
-                self.filename = self.filename + '['+ data.get('attachment_uid') + ']' + self.file_extension
+                self.filename = self.filename + '['+ data.get('attachment_uid') + ']' + '.' + self.file_extension
                 encoded_data: bytes = b64decode(data.get('data'))
                 return encoded_data
         return None
@@ -63,8 +65,10 @@ class FileDataDestination(DataDestination):
     def load(self, data: bytes) -> None:
         data = self._preload(data=data)
         if data and isinstance(data, bytes):
-            with open((self._path / self.filename), 'wb') as f:
+            with open((self.file_path / self.filename), 'wb') as f:
                 f.write(data)
+        else:
+            print(f'DEBUG| {type(data)}')
 
 
 class XMLDataDestination(FileDataDestination):

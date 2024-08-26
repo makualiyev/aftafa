@@ -1,0 +1,10 @@
+source:
+  type: restapi
+  domain: "ozon"
+  resource: "POST /v1/description-category/tree"
+  credentials_file: "test-samples/ozon_config.json"
+destination:
+  type: file
+  file_extension: "jsonl"
+  detect_file_extension: false
+  output_path: "test-samples"
