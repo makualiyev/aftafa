@@ -10,7 +10,9 @@ from aftafa.client.diadoc.client import DiadocClient
 from aftafa.client.diadoc.db import session as db_session, engine
 from aftafa.client.diadoc.schema.document import Document as DocumentSchema
 from aftafa.client.diadoc.schema.message import Message as MessageSchema
+# from aftafa.client.diadoc.schema.entity import Entity as EntitySchema
 import aftafa.client.diadoc.model as diadoc_models
+# from aftafa.client.diadoc.filehandler import FileHandler
 
 
 class DBDocumentUpdater:
@@ -83,6 +85,18 @@ class DBDocumentUpdater:
         self.db_session.add(prepped_model)
         self.db_session.commit()
 
+    # def populate_catalog_item(self, schema_: CatalogItem) -> None:
+    #     catalog_item_schema: dict[str, Any] = schema_.to_dict()
+
+    #     if catalog_item_schema.get("merchant_goods")[0]:
+    #         DBMerchantGoodsUpdater(client_session=self.sesh).refresh(
+    #             merchant_goods_schema=catalog_item_schema
+    #         )
+    #     if catalog_item_schema.get("suggested_goods")[0]:
+    #         DBSuggestedGoodsUpdater(client_session=self.sesh).refresh(
+    #             suggested_goods_schema=catalog_item_schema
+    #         )
+
     def refresh(self, document_schema: dict) -> None:
         prepped_model_ = self.prep_model(schema_=document_schema)
         if self.check_integrity(prepped_model=prepped_model_):
@@ -116,6 +130,7 @@ class DBMessageUpdater:
 
         req_fields: list[str] = [i for i in diadoc_models.Message.__dict__ if not i.startswith("_")]
         message_schema: dict[str, Any] = schema_.dict()
+        # message_schema['counteragent_id'] = 1
         message_schema['extracted_at'] = self.extraction_ts
 
         message_schema = {key: value for key, value in message_schema.items() if key in req_fields}

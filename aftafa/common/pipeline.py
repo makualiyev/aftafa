@@ -1,10 +1,16 @@
 from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Any
+import importlib
 
 import yaml
 
-from aftafa.common.source import DataSource, EmailDataSource
+from aftafa.common.source import (
+    DataSource,
+    EmailDataSource,
+    ExcelDataSource,
+    RESTAPIDataSource
+)
 from aftafa.common.destination import DataDestination, FileDataDestination
 
 
@@ -24,6 +30,37 @@ class PipelineConfig:
         source_config: dict[str, Any] = self._config.get('source')
         if source_config.get('type') == 'email':
             source = EmailDataSource(configs=source_config)
+            return source
+        elif source_config.get('type') == 'excel':
+            source = ExcelDataSource(
+                    path=source_config.get('input_path'),
+                    is_single=source_config.get('single_file'),
+                    query=source_config.get('query')
+                )
+            # if source_config.get('transforms'):
+            #     source._set_transformer(transformer=source_config.get('transforms'))
+            return source
+        elif source_config.get('type') == 'restapi':
+            supposed_client: str = list(source_config.get('client').keys())[0]
+            
+            if supposed_client == "ozon_v2":
+                supposed_client_username: str = source_config.get('client')['ozon_v2']['supplier']
+                supposed_client_class = getattr(importlib.import_module(f"aftafa.client.{supposed_client}.client"), "OzonSellerClient")
+                client = supposed_client_class(supplier=supposed_client_username)
+            elif supposed_client == "odata":
+                supposed_client_username: str = source_config.get('client')['odata']['username']
+                supposed_client_class = getattr(importlib.import_module(f"aftafa.client.{supposed_client}.client"), "ODataClient")
+                client = supposed_client_class(user=supposed_client_username, server=source_config.get('client')['odata']['server'])
+                
+            source = RESTAPIDataSource(
+                method=source_config.get('method'),
+                path=source_config.get('path'),
+                client=client
+            )
+
+            if source_config.get('kwargs'):
+                source._set_kwargs(**source_config.get('kwargs'))
+
             return source
         
     def _set_destination(self) -> DataDestination | None:
@@ -106,6 +143,10 @@ class Pipeline(BasePipeline):
             destination.load(data=data)
 
 
-class PipelineOperator:
-    def __init__(self) -> None:
-        pass
+class DAG:
+    """DAG representation, is itself a pipeline
+    also
+    """
+    def __init__(self, dag_name: str) -> None:
+        self._name = dag_name
+        

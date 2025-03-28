@@ -1,10 +1,17 @@
 from base64 import urlsafe_b64encode
 import json
 from requests import PreparedRequest, Response
+from pathlib import Path
+from typing import Any
 
 from aftafa.client.baseclient import BaseClient, BaseAuth
 from aftafa.common.config import Config
 
+
+BASE_SERVERS: dict[str, str] = {
+    "tradebt": "bt.com/trade"
+}
+BASE_URL: str = "http://{}/odata/standard.odata"
 
 class ODataClientUser:
     def __init__(self, user: str) -> None:
@@ -47,12 +54,14 @@ class ODataClientAuth(BaseAuth):
 
 class ODataClient(BaseClient):
     """OData custom client"""
-    def __init__(self, user: str, baseurl: str = '') -> None:
-        super().__init__(baseurl)
+    def __init__(self, user: str, server: str, baseurl: str = '') -> None:
+        super().__init__(
+            name="odata",
+            baseurl=BASE_URL.format(
+                BASE_SERVERS.get(server)
+            )
+        )
         self.user = ODataClientUser(user=user)
-        # self.headers.update({
-        #     "Content-Type" : "application/json"
-        # })
 
     def request(self, method, url, *args, **kwargs) -> Response:
         return super().request(

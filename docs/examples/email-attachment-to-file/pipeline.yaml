@@ -1,0 +1,16 @@
+source:
+  type: email
+  imap_host_url: "imap.yandex.com"
+  imap_host_port: 993
+  mailbox: "Thirdparty|Sklad_A"
+  email_from: ""
+  email_since: ""
+  email_limit: 5
+  attachment_only: true
+  attachment_file_type_accept: "xls;xlsx;zip"
+  credentials_file: "~/tempdir/imap_mail_config.json"
+destination:
+  type: file
+  file_extension: ""
+  detect_file_extension: true
+  output_path: "~/tempdir"

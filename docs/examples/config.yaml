@@ -1,0 +1,6 @@
+database_url: "postgresql://user:password@host:port/database"
+secrets_path: "./test-samples/secrets"
+default_output_path: "~/tempdir"
+default_temp_path: "~/tempdir"
+logging:
+  database_logs_path: "."

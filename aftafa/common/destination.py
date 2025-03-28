@@ -1,11 +1,13 @@
 from base64 import b64decode
 import json
 from datetime import datetime
-from pathlib import Path
+from pathlib import Path, PosixPath
 from abc import ABC, abstractmethod
 from typing import Any
 
-from aftafa.utils.helpers import parse_jsonpath, generate_random_hash
+from sqlalchemy import create_engine
+
+from aftafa.utils.helpers import generate_random_hash, parse_jsonpath
 
 
 class DataDestination(ABC):
@@ -30,9 +32,13 @@ class FileDataDestination(DataDestination):
     """
     def __init__(self, output_path: str | None, filename: str | None = None, file_extension: str = "dat") -> None:
         self._destination_type: str = "file"
-        if not Path(output_path).is_dir():
+        if isinstance(output_path, str):
+            output_path = Path(output_path)
+        if isinstance(output_path, PosixPath):
+            output_path = output_path.expanduser()
+        if not output_path.is_dir():
             raise FileNotFoundError("")
-        self._path = Path(output_path)
+        self._path = output_path
         self.file_extension = file_extension
     
     def generate_random_ts(self) -> str:
@@ -49,7 +55,20 @@ class FileDataDestination(DataDestination):
             return data
         if isinstance(data, dict):
             source_type: str = data.get('__source_type')
-            if source_type == "email":
+            if source_type == "json":
+                self.file_extension = self.file_extension
+                self.file_path = self._path
+                self.filename = (
+                    data.get('metadata').get('name')
+                    + '_'
+                    + self.generate_random_ts()
+                    + '.'
+                    + self.file_extension
+                )
+                encoded_data: bytes = json.dumps(data, ensure_ascii=False).encode('utf-8')
+                return encoded_data
+            
+            elif source_type == "email":
                 self.file_extension = data.get('decoded_file_extension')
                 self.file_path = self._path
                 for mailbox_part in data.get('email_mailbox').split('|'):
@@ -60,6 +79,30 @@ class FileDataDestination(DataDestination):
                 self.filename = self.filename + '['+ data.get('attachment_uid') + ']' + '.' + self.file_extension
                 encoded_data: bytes = b64decode(data.get('data'))
                 return encoded_data
+            elif source_type == 'excel':
+                self.file_extension = self.file_extension
+                self.file_path = self._path
+                self.filename = (
+                    data.get('metadata').get('name')
+                    + '_'
+                    + data.get('sheet_name')
+                    + '_'
+                    + self.generate_random_ts()
+                    + '.'
+                    + self.file_extension
+                )
+                encoded_data: bytes = (
+                    data
+                        .get('dataframe')
+                        .to_csv(
+                            None,
+                            sep=';',
+                            lineterminator='\n'             
+                        )
+                        .encode('utf-8-sig')
+                )
+                return encoded_data
+                
         return None
 
     def load(self, data: bytes) -> None:
@@ -141,10 +184,10 @@ class JSONlDataDestination(FileDataDestination):
             print(f"Failed loading to JSONl file, provided no data!")
             return None
         data = self._validate_data(data=data)
-        if self.jsonpath:
-            parsed_jsonpath_val: dict | None = parse_jsonpath(jsonpath=self.jsonpath, data=data)
-            if parsed_jsonpath_val:
-                data = parsed_jsonpath_val
+        # if self.jsonpath:
+        #     parsed_jsonpath_val: dict | None = parse_jsonpath(jsonpath=self.jsonpath, data=data)
+        #     if parsed_jsonpath_val:
+        #         data = parsed_jsonpath_val
 
         with open((self._path / f'jsonl_loaded_{self.generate_random_ts()}.jsonl'), 'w', encoding='utf-8') as f:
             if isinstance(data, list):
@@ -166,9 +209,14 @@ class SQLDataDestination(DataDestination):
     Args:
         DataDestination (_type_): _description_
     """
-    def __init__(self) -> None:
+    def __init__(
+            self,
+            connection_str: str
+    ) -> None:
         super().__init__()
         self._destination_type: str = "sql"
+        self.conn_str: str = connection_str
+        self._engine = create_engine(url=connection_str)
 
     def load(self) -> None:
         pass

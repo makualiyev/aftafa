@@ -16,15 +16,7 @@ class Counteragent(Base):
     short_name = sa.Column(sa.String(255), nullable=False)
     box_id = sa.Column(sa.String(255), unique=True, nullable=False)
     slug = sa.Column(sa.String(255), nullable=False)
-
-
-# Counteragent(
-#     org_guid='f7445b7a-c4a5-42a3-beda-75fee639d347',
-#     full_name='Общество с ограниченной ответственностью "Склад А"',
-#     short_name='ООО "СКЛАД А"',
-#     box_id='6817822838e145068b2f26528c461a7b@diadoc.ru',
-#     slug='Sklad_A'
-# )
+    
 
 class Document(Base):
     """

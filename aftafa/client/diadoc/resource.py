@@ -24,8 +24,6 @@ class GetCounteragents(DiadocResource):
     def __init__(self, my_org_id: str = None) -> None:
         if my_org_id:
             self.my_org_id = my_org_id
-        else:
-            self.my_org_id = '28a5fd24-826c-4180-a896-e5d965ff4ddb'
         super().__init__('GET', 'V2/GetCounteragents')
 
         
@@ -62,10 +60,10 @@ class GetCounteragents(DiadocResource):
             
 
 class GetDocuments(DiadocResource):
-    def __init__(self) -> None:
+    def __init__(self, box_id: str) -> None:
         super().__init__('GET', 'V3/GetDocuments')
         self._params = {
-                    'boxId': '4284b03c9a5148a5b164cd38a0471998@diadoc.ru',
+                    'boxId': box_id,
                     'filterCategory': 'Any.InboundNotRevoked',
                     'counteragentBoxId': '',
                     'fromDocumentDate': ''
@@ -74,7 +72,7 @@ class GetDocuments(DiadocResource):
     def make_request(
             self,
             client: DiadocClient,
-            box_id: str = '6817822838e145068b2f26528c461a7b@diadoc.ru',
+            box_id: str,
             date_from: str = datetime.now().strftime('%d.%m.%Y')
                 ) -> Response:
         params = self._params.copy()
@@ -97,7 +95,7 @@ class GetDocuments(DiadocResource):
             print('Validation failed ->', e.json())
 
 
-    def get_chunks(self, client: DiadocClient, box_id: str = '6817822838e145068b2f26528c461a7b@diadoc.ru', date_from: str = datetime.now().strftime('%d.%m.%Y')) -> Generator[Response, None, None]:
+    def get_chunks(self, client: DiadocClient, box_id: str, date_from: str = datetime.now().strftime('%d.%m.%Y')) -> Generator[Response, None, None]:
         def split_into_chunks(total : int, n_size : int) -> int:
             """Used to split product ids into small chunks of a size 100"""
             return (total // n_size) + 1 if (total % n_size) > 0 else total // n_size
@@ -137,7 +135,7 @@ class GetDocuments(DiadocResource):
                 total_count = 1
                 counter = 1
 
-    def process_to_db(self, client: DiadocClient, box_id: str = '6817822838e145068b2f26528c461a7b@diadoc.ru', date_from: str = datetime.now().strftime('%d.%m.%Y')) -> None:
+    def process_to_db(self, client: DiadocClient, box_id: str, date_from: str = datetime.now().strftime('%d.%m.%Y')) -> None:
         extraction_ts = datetime.now()
         doc_updater: DBDocumentUpdater = DBDocumentUpdater(client_session=client, extraction_ts=extraction_ts)
         for chunk in GetDocuments().get_chunks(client, box_id=box_id, date_from=date_from):
@@ -152,10 +150,10 @@ class GetDocuments(DiadocResource):
             
 
 class GetV5Message(DiadocResource):
-    def __init__(self) -> None:
+    def __init__(self, box_id: str) -> None:
         super().__init__('GET', 'V5/GetMessage')
         self._params = {
-                    'boxId': '4284b03c9a5148a5b164cd38a0471998@diadoc.ru',
+                    'boxId': box_id,
                     'messageId': ''
         }
 
@@ -196,10 +194,10 @@ class GetV5Message(DiadocResource):
             
 
 class GetV4EntityContent(DiadocResource):
-    def __init__(self) -> None:
+    def __init__(self, box_id: str) -> None:
         super().__init__('GET', 'V4/GetEntityContent')
         self._params = {
-                    'boxId': '4284b03c9a5148a5b164cd38a0471998@diadoc.ru',
+                    'boxId': box_id,
                     'messageId': '',
                     'entityId': ''
         }

@@ -37,7 +37,7 @@ You can check a working example of a pipeline moving data from email to a raw fi
     * Python libraries: [tenacity](https://github.com/jd/tenacity), [click](https://github.com/pallets/click), [structlog](https://github.com/hynek/structlog)
 * Ideas:
     * Dev concerns
-        * too many dependencies that cause bloating, `venv` folder weighs 375,7 Mb
+        * too many dependencies that cause bloating, `venv` folder weighs ~400 Mb
 
 # TODO list
 

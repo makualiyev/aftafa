@@ -2,8 +2,8 @@ from typing import Literal
 
 from pydantic import BaseModel
 
-from diadoc_client.schema.document import Document
-from utils.helpers import to_pascal
+from aftafa.client.diadoc.schema.document import Document
+from aftafa.utils.helpers import to_pascal
 
 
 class Content(BaseModel):

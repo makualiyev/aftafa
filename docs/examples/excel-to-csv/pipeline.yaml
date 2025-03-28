@@ -1,0 +1,9 @@
+source:
+  type: excel
+  input_path: "~/tempdir/xl/sample1.xlsx"
+  single_file: true
+destination:
+  type: file
+  file_extension: "csv"
+  detect_file_extension: false
+  output_path: "~/tempdir"

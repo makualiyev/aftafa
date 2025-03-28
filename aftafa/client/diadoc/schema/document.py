@@ -1,6 +1,6 @@
 from pydantic import BaseModel, ConfigDict
 
-from utils.helpers import to_camel, to_pascal
+from aftafa.utils.helpers import to_camel, to_pascal
 
 
 class DocumentContentField(BaseModel):

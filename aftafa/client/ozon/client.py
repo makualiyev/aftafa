@@ -10,6 +10,7 @@ from aftafa.client.baseclient import BaseClient, BaseAuth
 
 BASE_URL: str = "https://api-seller.ozon.ru"
 
+
 class OzonSellerSupplier:
     def __init__(self, supplier: str) -> None:
         self.supplier = supplier
@@ -39,7 +40,7 @@ class OzonSellerClient(BaseClient):
         self.supplier = supplier
         self.supplier_id = int(OzonSellerSupplier(supplier=supplier).info['client_id'])
         self.headers.update({
-            "Content-Type" : "application/json"
+            "Content-Type": "application/json"
         })
 
     def request(self, method, url, *args, **kwargs) -> Response:

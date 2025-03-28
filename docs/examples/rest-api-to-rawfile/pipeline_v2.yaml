@@ -1,0 +1,12 @@
+source:
+  type: restapi
+  method: post
+  path: /v1/description-category/tree
+  client:
+    ozon_v2:
+      user: USER
+destination:
+  type: file
+  file_extension: "json"
+  detect_file_extension: false
+  output_path: "~/tempdir"

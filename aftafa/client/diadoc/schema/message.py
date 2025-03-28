@@ -2,9 +2,9 @@ from typing import Literal
 
 from pydantic import BaseModel
 
-from diadoc_client.schema.document import Document
-from diadoc_client.schema.entity import Entity
-from utils.helpers import to_pascal
+from aftafa.client.diadoc.schema.document import Document
+from aftafa.client.diadoc.schema.entity import Entity
+from aftafa.utils.helpers import to_pascal
 
 
 class TemplateToLetterTransformationInfo(BaseModel):

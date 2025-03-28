@@ -1,0 +1,14 @@
+source:
+  type: excel
+  input_path: "~/tempdir/folder_with_excel_files"
+  single_file: false
+  query:
+    since_from: ""
+    since_from_delta: "1 day"
+    search_string: "Отчет об остатках товара"
+    limit: 1
+destination:
+  type: file
+  file_extension: "csv"
+  detect_file_extension: false
+  output_path: "~/tempdir/output_folder"

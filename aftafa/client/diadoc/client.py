@@ -6,13 +6,12 @@ import requests
 from aftafa.common.config import Config
 
 
-cfg: Config = Config()
-
-META_DIR = cfg._get_meta_credentials_file('DIADOC')
+cfg = Config()
+META_DIR = cfg._get_meta_credentials_file(channel="DI")
 BASE_URL = 'https://diadoc-api.kontur.ru/'
 
 class DiadocMetaRegistry:
-    META_DIR = r'E:/shoptalk/local_/meta/meta_diadoc.json'
+    META_DIR = cfg._get_meta_credentials_file(channel="DI")
 
     def __init__(self) -> None:
         self._meta = self._init_meta()

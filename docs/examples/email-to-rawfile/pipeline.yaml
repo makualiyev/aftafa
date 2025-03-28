@@ -1,0 +1,16 @@
+source:
+  type: email
+  imap_host_url: "imap.yandex.com"
+  imap_host_port: 993
+  mailbox: "Mailbox|FolderInMailbox|AnotherFolder"
+  email_from: "foo@buzz.com"
+  email_since: ""
+  email_limit: 5
+  attachment_only: false
+  attachment_file_type_accept: ""
+  credentials_file: "test-samples/imap_mail_config.json"
+destination:
+  type: file
+  file_extension: ""
+  detect_file_extension: false
+  output_path: "test-samples"
