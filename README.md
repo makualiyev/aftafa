@@ -1,4 +1,7 @@
 <h1 align="center">
+    <p align="center">
+        <img src="docs/assets/logo.svg" alt="logo"/>
+    </p>
     <strong>🏺 aftafa</strong> data pipeline
 </h1>
 <p align="center">
@@ -7,6 +10,7 @@ Work in progress lightweight Python ELT library with e-commerce (OZON, Wildberri
 <p align="center">⚠️ This project is under <strong>heavy development</strong> and yet to be a usable library, so many features are missing actually and its structure surely will be modified/refactored and documented</p>
 
 # Overview
+
 <div style="text-align: justify">This module can be helpful even if you're not trying to build a decent ETL pipeline, but rather want to fetch data from a marketplace API via a convenient client. But keep in mind that API methods provided in this module can only fetch data (not to confuse with HTTP methods) but can't change them in a way it is documented by a source vendor (e. g. for marketplaces it means: change prices, add new products, refresh dropshipping stocks and etc). Inspired by <a href=https://github.com/dlt-hub/dlt>dlt</a>, <a href=https://github.com/meltano/meltano>meltano</a>, <a href=https://github.com/cloudquery/cloudquery>cloudquery</a>, <a href=https://github.com/redpanda-data/benthos>benthos</a> (<a href=https://github.com/warpstreamlabs/bento>bento</a>), <a href=https://github.com/ozontech/file.d>file.d</a>.</div>
 
 # Usage
